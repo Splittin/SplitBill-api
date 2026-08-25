@@ -8,6 +8,7 @@
 # Env / secrets
 .env
 .env.*
+!.env.example
 **/appsettings.*.local.json
 
 # Supabase CLI
