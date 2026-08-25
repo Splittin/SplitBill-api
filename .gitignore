@@ -1,0 +1,20 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Env / secrets
+.env
+.env.*
+**/appsettings.*.local.json
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

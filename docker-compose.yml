@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: splitbill-db
+    environment:
+      POSTGRES_USER: splitbill
+      POSTGRES_PASSWORD: splitbill
+      POSTGRES_DB: splitbill
+    ports:
+      - "5432:5432"
+    volumes:
+      - splitbill_pgdata:/var/lib/postgresql/data
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_functions_users.sql:/docker-entrypoint-initdb.d/02_functions_users.sql:ro
+      - ./database/03_functions_bills.sql:/docker-entrypoint-initdb.d/03_functions_bills.sql:ro
+      - ./database/04_functions_groups.sql:/docker-entrypoint-initdb.d/04_functions_groups.sql:ro
+      - ./database/05_seed.sql:/docker-entrypoint-initdb.d/05_seed.sql:ro
+      - ./database/07_bill_line_items.sql:/docker-entrypoint-initdb.d/07_bill_line_items.sql:ro
+      - ./database/08_group_invites.sql:/docker-entrypoint-initdb.d/08_group_invites.sql:ro
+      - ./database/09_auth.sql:/docker-entrypoint-initdb.d/09_auth.sql:ro
+      - ./database/10_groups_for_user.sql:/docker-entrypoint-initdb.d/10_groups_for_user.sql:ro
+      - ./database/11_shopping_item_crud.sql:/docker-entrypoint-initdb.d/11_shopping_item_crud.sql:ro
+      - ./database/12_auth_is_new_user.sql:/docker-entrypoint-initdb.d/12_auth_is_new_user.sql:ro
+      - ./database/13_shopping_product_details.sql:/docker-entrypoint-initdb.d/13_shopping_product_details.sql:ro
+      - ./database/14_shopping_for_user.sql:/docker-entrypoint-initdb.d/14_shopping_for_user.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U splitbill -d splitbill"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  splitbill_pgdata:

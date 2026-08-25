@@ -1,0 +1,72 @@
+@SplitBill.Api_HostAddress = http://localhost:5080
+
+### Request email OTP (dev returns devCode when SMTP is off)
+POST {{SplitBill.Api_HostAddress}}/api/auth/email/request-otp
+Content-Type: application/json
+
+{
+  "email": "teddy@example.com"
+}
+
+###
+
+### Verify email OTP — paste code from previous response
+POST {{SplitBill.Api_HostAddress}}/api/auth/email/verify
+Content-Type: application/json
+
+{
+  "email": "teddy@example.com",
+  "code": "000000"
+}
+
+###
+
+### Current user (requires Bearer token)
+GET {{SplitBill.Api_HostAddress}}/api/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+GET {{SplitBill.Api_HostAddress}}/api/users
+Accept: application/json
+
+###
+
+GET {{SplitBill.Api_HostAddress}}/api/users/1
+Accept: application/json
+
+###
+
+PUT {{SplitBill.Api_HostAddress}}/api/users/1/profile
+Content-Type: application/json
+
+{
+  "displayName": "Teddy",
+  "email": "teddy@example.com",
+  "avatarUrl": null,
+  "payId": "teddy@payid.com.au",
+  "bankName": "Commonwealth Bank",
+  "bsb": "062-000",
+  "accountNumber": "1234 5678"
+}
+
+###
+
+GET {{SplitBill.Api_HostAddress}}/api/bills
+Accept: application/json
+
+###
+
+POST {{SplitBill.Api_HostAddress}}/api/bills
+Content-Type: application/json
+
+{
+  "title": "Coffee run",
+  "totalAmount": 18,
+  "currencyCode": "AUD",
+  "createdByUserId": 1,
+  "participants": [
+    { "userId": 1, "shareAmount": 9 },
+    { "userId": 2, "shareAmount": 9 }
+  ]
+}
