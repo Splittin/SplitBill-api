@@ -18,12 +18,9 @@ RUN dotnet publish backend/src/SplitBill.Api/SplitBill.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Non-root for security; platforms can still inject PORT
-RUN adduser --disabled-password --gecos "" appuser \
-    && chown -R appuser /app
-USER appuser
-
-COPY --from=build /app/publish .
+# Image already provides non-root user ($APP_UID / app); no adduser on this base.
+COPY --from=build --chown=$APP_UID:$APP_UID /app/publish .
+USER $APP_UID
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080
