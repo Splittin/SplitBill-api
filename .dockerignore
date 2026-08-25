@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+supabase/.temp
+*.md
+.DS_Store

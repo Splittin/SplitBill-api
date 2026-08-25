@@ -63,6 +63,21 @@ dotnet run --project src/SplitBill.Api
 
 The API loads connection settings from the repo-root `.env` file.
 
+## Deploy (Docker)
+
+Root `Dockerfile` builds and runs the API. Set these env vars on the host (do not bake secrets into the image):
+
+| Variable | Purpose |
+| --- | --- |
+| `ConnectionStrings__PostgreSQL` | Supabase / Postgres connection string |
+| `Jwt__SigningKey` | JWT signing key (min 32 chars) |
+| `PORT` | HTTP port (set automatically by Railway/Render) |
+
+```bash
+docker build -t splitbill-api .
+docker run --rm -p 8080:8080 --env-file .env splitbill-api
+```
+
 ## Scripts
 
 | Command | Description |
