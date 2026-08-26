@@ -39,6 +39,7 @@ public class AuthRepository : IAuthRepository
             new CommandDefinition(
                 "SELECT fn_consume_login_otp(@Email, @CodeHash)",
                 new { Email = email, CodeHash = codeHash },
+                commandTimeout: 15,
                 cancellationToken: cancellationToken));
     }
 
@@ -67,6 +68,7 @@ public class AuthRepository : IAuthRepository
                         GoogleSub = googleSub,
                         AvatarUrl = avatarUrl,
                     },
+                    commandTimeout: 15,
                     cancellationToken: cancellationToken));
 
             return new AuthUpsertResult(

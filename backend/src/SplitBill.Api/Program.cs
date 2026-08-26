@@ -53,7 +53,7 @@ app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
-        context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
@@ -62,6 +62,12 @@ app.UseExceptionHandler(errorApp =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/api/health", () => Results.Json(new
+{
+    ok = true,
+    service = "SplitBill.Api",
+    version = "2026-08-27-cors-otp",
+}));
 
 app.Run();
 
