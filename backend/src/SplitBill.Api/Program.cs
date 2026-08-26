@@ -48,6 +48,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("MobileClient");
+// Exception responses must still include CORS headers for browser clients.
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+    });
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -124,7 +135,7 @@ static void EnsureSupabaseConnectionString()
 
     Environment.SetEnvironmentVariable(
         "ConnectionStrings__PostgreSQL",
-        $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true");
+        $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Max Auto Prepare=0;No Reset On Close=true;Multiplexing=false");
 }
 
 static string? FirstEnv(params string[] keys)
