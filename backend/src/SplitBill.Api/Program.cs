@@ -7,6 +7,13 @@ EnsureSupabaseConnectionString();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway / Render / Fly inject PORT; bind there when present.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -41,6 +48,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("MobileClient");
+// Exception responses must still include CORS headers for browser clients.
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+    });
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

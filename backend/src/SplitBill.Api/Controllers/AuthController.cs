@@ -60,6 +60,12 @@ public class AuthController : ControllerBase
         {
             return Unauthorized(new { error = ex.Message });
         }
+        catch (Exception)
+        {
+            return StatusCode(
+                503,
+                new { error = "Could not verify the login code. The API could not reach the database." });
+        }
     }
 
     [HttpPost("google")]
@@ -83,6 +89,12 @@ public class AuthController : ControllerBase
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(
+                503,
+                new { error = "Google sign-in failed. The API could not reach the database." });
         }
     }
 
