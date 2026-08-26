@@ -21,10 +21,11 @@ public class AuthRepository : IAuthRepository
         CancellationToken cancellationToken = default)
     {
         await using var connection = (NpgsqlConnection)await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        await connection.ExecuteAsync(
+        await connection.ExecuteScalarAsync<long>(
             new CommandDefinition(
                 "SELECT fn_create_login_otp(@Email, @CodeHash, @ExpiresAt)",
                 new { Email = email, CodeHash = codeHash, ExpiresAt = expiresAt },
+                commandTimeout: 15,
                 cancellationToken: cancellationToken));
     }
 

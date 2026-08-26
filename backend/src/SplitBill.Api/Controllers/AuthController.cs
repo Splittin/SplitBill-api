@@ -34,6 +34,12 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+        catch (Exception)
+        {
+            return StatusCode(
+                503,
+                new { error = "Could not send a login code. The API could not reach the database." });
+        }
     }
 
     [HttpPost("email/verify")]
