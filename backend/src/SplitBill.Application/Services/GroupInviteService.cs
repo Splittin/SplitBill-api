@@ -110,8 +110,13 @@ public class GroupInviteService
 
     private string BuildInviteUrl(string token)
     {
-        var baseUrl = (_options.PublicAppBaseUrl ?? "http://localhost:8081").TrimEnd('/');
-        return $"{baseUrl}/join/{token}";
+        var baseUrl = (_options.PublicAppBaseUrl ?? string.Empty).Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            baseUrl = "http://localhost:8081";
+        }
+
+        return $"{baseUrl}/join/{Uri.EscapeDataString(token)}";
     }
 
     private static EmailMessage BuildInviteEmail(GroupInviteRecord invite, string inviteUrl)
