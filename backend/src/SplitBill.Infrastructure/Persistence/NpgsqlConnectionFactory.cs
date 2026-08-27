@@ -25,7 +25,8 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
 
     /// <summary>
     /// PgBouncer / Supabase poolers reject prepared statements and hang on
-    /// connection reset. Keep local Docker Postgres unchanged.
+    /// connection reset. Npgsql 10 prefers GSS/Kerberos by default, which
+    /// fails in slim .NET container images without libgssapi_krb5.
     /// </summary>
     internal static string Normalize(string connectionString)
     {
@@ -33,6 +34,7 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
         {
             MaxAutoPrepare = 0,
             Multiplexing = false,
+            GssEncryptionMode = GssEncryptionMode.Disable,
         };
 
         var host = builder.Host ?? "";
