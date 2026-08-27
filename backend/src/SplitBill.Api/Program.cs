@@ -41,6 +41,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+var smtpHost = app.Configuration["Email:Smtp:Host"];
+var smtpPort = app.Configuration["Email:Smtp:Port"] ?? "587";
+if (string.IsNullOrWhiteSpace(smtpHost))
+{
+    app.Logger.LogWarning("Email SMTP Host is empty — invitation/OTP emails will not be sent.");
+}
+else
+{
+    app.Logger.LogInformation("Email SMTP configured for {Host}:{Port}", smtpHost.Trim(), smtpPort);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -53,7 +64,7 @@ app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
-        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+        context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
@@ -62,12 +73,6 @@ app.UseExceptionHandler(errorApp =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/api/health", () => Results.Json(new
-{
-    ok = true,
-    service = "SplitBill.Api",
-    version = "2026-08-27-cors-otp",
-}));
 
 app.Run();
 
@@ -106,8 +111,16 @@ static void LoadRepoDotEnv()
                     value = value[1..^1];
                 }
 
-                if (!string.IsNullOrEmpty(key) &&
-                    string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                if (string.IsNullOrEmpty(key))
+                {
+                    continue;
+                }
+
+                // Always apply Email/App settings from repo .env so SMTP/invite URL
+                // are not stuck on empty appsettings or a stale shell export.
+                var forceOverwrite = key.StartsWith("Email__", StringComparison.OrdinalIgnoreCase)
+                    || key.StartsWith("App__", StringComparison.OrdinalIgnoreCase);
+                if (forceOverwrite || string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
                 {
                     Environment.SetEnvironmentVariable(key, value);
                 }

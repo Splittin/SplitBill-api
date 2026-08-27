@@ -1,7 +1,8 @@
-using System.Net;
-using System.Net.Mail;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MimeKit;
 using SplitBill.Application.Interfaces;
 
 namespace SplitBill.Infrastructure.Services;
@@ -19,7 +20,7 @@ public sealed class SmtpEmailSender : IEmailSender
 
     public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
-        var host = _configuration["Email:Smtp:Host"];
+        var host = _configuration["Email:Smtp:Host"]?.Trim();
         if (string.IsNullOrWhiteSpace(host))
         {
             _logger.LogInformation(
@@ -31,48 +32,71 @@ public sealed class SmtpEmailSender : IEmailSender
         }
 
         var port = int.TryParse(_configuration["Email:Smtp:Port"], out var parsedPort) ? parsedPort : 587;
-        var username = _configuration["Email:Smtp:Username"];
-        var password = _configuration["Email:Smtp:Password"];
-        var fromAddress = _configuration["Email:FromAddress"] ?? username ?? "noreply@splitbill.local";
-        var fromName = _configuration["Email:FromName"] ?? "SplitBill";
+        var username = _configuration["Email:Smtp:Username"]?.Trim();
+        // Gmail app passwords are often copied with spaces; strip them.
+        var password = (_configuration["Email:Smtp:Password"] ?? string.Empty).Replace(" ", "", StringComparison.Ordinal);
+        var fromAddress = (_configuration["Email:FromAddress"] ?? username ?? "noreply@splitbill.local").Trim();
+        var fromName = (_configuration["Email:FromName"] ?? "SplitBill").Trim();
         var enableSsl = !string.Equals(
             _configuration["Email:Smtp:EnableSsl"],
             "false",
             StringComparison.OrdinalIgnoreCase);
+        var timeoutSeconds = int.TryParse(_configuration["Email:Smtp:TimeoutSeconds"], out var parsedTimeout)
+            ? Math.Clamp(parsedTimeout, 5, 120)
+            : 20;
+        // CRL checks often hang/fail on cloud hosts and some local networks, causing SMTP timeouts.
+        var checkRevocation = string.Equals(
+            _configuration["Email:Smtp:CheckCertificateRevocation"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
 
-        using var client = new SmtpClient(host, port)
+        var mime = new MimeMessage();
+        mime.From.Add(new MailboxAddress(fromName, fromAddress));
+        mime.To.Add(MailboxAddress.Parse(message.To));
+        mime.Subject = message.Subject;
+        mime.Body = new BodyBuilder
         {
-            EnableSsl = enableSsl,
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-        };
-
-        if (!string.IsNullOrWhiteSpace(username))
-        {
-            client.Credentials = new NetworkCredential(username, password);
-        }
-
-        using var mail = new MailMessage
-        {
-            From = new MailAddress(fromAddress, fromName),
-            Subject = message.Subject,
-            Body = message.HtmlBody,
-            IsBodyHtml = true,
-        };
-        mail.To.Add(message.To);
-        mail.AlternateViews.Add(
-            AlternateView.CreateAlternateViewFromString(message.TextBody, null, "text/plain"));
+            HtmlBody = message.HtmlBody,
+            TextBody = message.TextBody,
+        }.ToMessageBody();
 
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            await client.SendMailAsync(mail, cancellationToken);
-            _logger.LogInformation("Invitation email sent to {To}", message.To);
+            using var client = new SmtpClient
+            {
+                Timeout = timeoutSeconds * 1000,
+                CheckCertificateRevocation = checkRevocation,
+            };
+            var secureSocket = ResolveSecureSocketOptions(port, enableSsl);
+
+            await client.ConnectAsync(host, port, secureSocket, cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                await client.AuthenticateAsync(username, password, cancellationToken);
+            }
+
+            await client.SendAsync(mime, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
+
+            _logger.LogInformation("Invitation email sent to {To} via {Host}:{Port}", message.To, host, port);
             return new EmailSendResult(true, "Invitation email sent.");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to send invitation email to {To}", message.To);
+            _logger.LogWarning(ex, "Failed to send invitation email to {To} via {Host}:{Port}", message.To, host, port);
             return new EmailSendResult(false, $"Email send failed: {ex.Message}");
         }
+    }
+
+    private static SecureSocketOptions ResolveSecureSocketOptions(int port, bool enableSsl)
+    {
+        if (!enableSsl)
+        {
+            return SecureSocketOptions.None;
+        }
+
+        // 465 = implicit SSL; 587 = STARTTLS (Gmail / most providers).
+        return port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
     }
 }
