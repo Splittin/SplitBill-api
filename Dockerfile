@@ -18,9 +18,15 @@ RUN dotnet publish backend/src/SplitBill.Api/SplitBill.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+# Npgsql may probe GSS/Kerberos; .NET 8+ images omit these libs by default.
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libkrb5-3 \
+    && rm -rf /var/lib/apt/lists/*
+USER $APP_UID
+
 # Image already provides non-root user ($APP_UID / app); no adduser on this base.
 COPY --from=build --chown=$APP_UID:$APP_UID /app/publish .
-USER $APP_UID
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080

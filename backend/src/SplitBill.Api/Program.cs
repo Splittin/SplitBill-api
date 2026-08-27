@@ -141,7 +141,7 @@ static void EnsureSupabaseConnectionString()
 
     Environment.SetEnvironmentVariable(
         "ConnectionStrings__PostgreSQL",
-        $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Max Auto Prepare=0;No Reset On Close=true;Multiplexing=false");
+        $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Max Auto Prepare=0;No Reset On Close=true;Multiplexing=false;GSS Encryption Mode=Disable");
 }
 
 static string? FirstEnv(params string[] keys)
