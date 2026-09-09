@@ -106,8 +106,18 @@ static void LoadRepoDotEnv()
                     value = value[1..^1];
                 }
 
-                if (!string.IsNullOrEmpty(key) &&
-                    string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                if (string.IsNullOrEmpty(key))
+                {
+                    continue;
+                }
+
+                // Always apply Email/App/DB settings from repo .env so SMTP, invite
+                // URL, and the connection string are not stuck on a stale shell export.
+                var forceOverwrite = key.StartsWith("Email__", StringComparison.OrdinalIgnoreCase)
+                    || key.StartsWith("App__", StringComparison.OrdinalIgnoreCase)
+                    || key.StartsWith("ConnectionStrings__", StringComparison.OrdinalIgnoreCase)
+                    || key.StartsWith("SUPABASE_", StringComparison.OrdinalIgnoreCase);
+                if (forceOverwrite || string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
                 {
                     Environment.SetEnvironmentVariable(key, value);
                 }

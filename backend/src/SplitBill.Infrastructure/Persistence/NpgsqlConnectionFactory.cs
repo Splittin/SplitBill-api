@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using SplitBill.Application.Interfaces;
 
@@ -9,11 +10,18 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
 {
     private readonly string _connectionString;
 
-    public NpgsqlConnectionFactory(IConfiguration configuration)
+    public NpgsqlConnectionFactory(IConfiguration configuration, ILogger<NpgsqlConnectionFactory> logger)
     {
         var raw = configuration.GetConnectionString("PostgreSQL")
             ?? throw new InvalidOperationException("Connection string 'PostgreSQL' is not configured.");
         _connectionString = Normalize(raw);
+        var parsed = new NpgsqlConnectionStringBuilder(_connectionString);
+        logger.LogInformation(
+            "PostgreSQL host {Host}:{Port} database {Database} user {Username}",
+            parsed.Host,
+            parsed.Port,
+            parsed.Database,
+            parsed.Username);
     }
 
     public async Task<IDbConnection> CreateOpenConnectionAsync(CancellationToken cancellationToken = default)
